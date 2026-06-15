@@ -2240,7 +2240,7 @@ if(location.hash==='#open'){ expand(); }
 const GATE_PW = process.env.TF_ACCESS_PASSWORD || '';
 function gateToken(){ return crypto.createHmac('sha256', GATE_PW || 'x').update('timeflow-gate-v1').digest('hex'); }
 function gateOpen(req){ if(!GATE_PW) return true; const c=req.headers.cookie||''; const m=c.match(/tf_gate=([a-f0-9]+)/); return !!(m && m[1]===gateToken()); }
-const GATE_ALLOW = new Set(['/__login','/sw.js','/manifest.webmanifest','/icon.svg','/oauth/callback','/sb/callback','/sb/login','/.well-known/assetlinks.json']);
+const GATE_ALLOW = new Set(['/__login','/sw.js','/manifest.webmanifest','/icon.svg','/oauth/callback','/sb/callback','/sb/login','/.well-known/assetlinks.json','/api/diag']);
 const GATE_PAGE = ()=>`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TimeFlow</title>
 <style>*{box-sizing:border-box;margin:0;font-family:-apple-system,"Segoe UI",system-ui,sans-serif}body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(1200px 800px at 20% -10%,#3a1d5e,transparent),radial-gradient(900px 700px at 100% 20%,#0a2a5e,transparent),#0e0f13;color:#fff}
 .c{background:rgba(28,28,36,.7);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:40px 34px;width:340px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.5)}
@@ -2274,6 +2274,10 @@ const server = http.createServer(async(req,res)=>{
     const body = sha ? [{ relation:['delegate_permission/common.handle_all_urls'], target:{ namespace:'android_app', package_name:pkg, sha256_cert_fingerprints:[sha] } }] : [];
     cors(res); res.writeHead(200,{'Content-Type':'application/json'}); res.end(JSON.stringify(body)); return;
   }
+  // Diagnostic (temporaire) : montre ce que le serveur envoie à Google (client_id = public, pas un secret)
+  if (url.pathname==='/api/diag'){ cors(res); res.writeHead(200,{'Content-Type':'application/json'}); res.end(JSON.stringify({
+    client_id: clientId(), redirect_uri: REDIRECT_URI, public_url: PUBLIC_URL, has_secret: !!clientSecret(), secret_len: (clientSecret()||'').length
+  })); return; }
   // App installable (PWA) — accessibles même non connecté
   if (url.pathname==='/manifest.webmanifest'){ cors(res); res.writeHead(200,{'Content-Type':'application/manifest+json; charset=utf-8'}); res.end(MANIFEST); return; }
   if (url.pathname==='/icon.svg'){ cors(res); res.writeHead(200,{'Content-Type':'image/svg+xml; charset=utf-8','Cache-Control':'public, max-age=604800'}); res.end(ICON_SVG); return; }
