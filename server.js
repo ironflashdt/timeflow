@@ -73,6 +73,12 @@ if (fs.existsSync(CONFIG_FILE)) {
   for (const k of NEST) if (saved[k] && typeof saved[k]==='object') saved[k] = {...config[k], ...saved[k]};
   config = {...config, ...saved};
 }
+// Variables d'environnement PRIORITAIRES (hébergement : elles persistent, contrairement au disque éphémère).
+if (process.env.TF_GOOGLE_CLIENT_ID)     config.client_id     = process.env.TF_GOOGLE_CLIENT_ID.trim();
+if (process.env.TF_GOOGLE_CLIENT_SECRET) config.client_secret = process.env.TF_GOOGLE_CLIENT_SECRET.trim();
+if (process.env.TF_SUPABASE_URL)         config.sb_url        = process.env.TF_SUPABASE_URL.trim();
+if (process.env.TF_SUPABASE_KEY)         config.sb_anon_key   = process.env.TF_SUPABASE_KEY.trim();
+if (process.env.TF_AI_KEY){ config.ai_api_key=process.env.TF_AI_KEY.trim(); config.ai_provider='openai'; config.ai_base_url=config.ai_base_url||'https://api.groq.com/openai/v1'; config.model=config.model||'openai/gpt-oss-120b'; }
 function saveConfig(){ fs.writeFileSync(CONFIG_FILE, JSON.stringify(config)); try{ cloudDirty(); }catch(e){} }
 
 // ─── DONNÉES ───
