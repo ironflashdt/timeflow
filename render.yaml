@@ -1,0 +1,17 @@
+# Déploiement TimeFlow sur Render (https://render.com) — gratuit
+# 1) Pousse ce dossier sur un dépôt GitHub.
+# 2) Render ▸ New ▸ Blueprint ▸ choisis ce dépôt → il lit ce fichier.
+# 3) Après le 1er déploiement, copie l'URL (ex. https://timeflow-xxxx.onrender.com)
+#    et renseigne-la dans la variable TF_PUBLIC_URL (onglet Environment), puis redéploie.
+services:
+  - type: web
+    name: timeflow
+    runtime: node
+    plan: free
+    buildCommand: npm install --omit=dev
+    startCommand: node server.js
+    envVars:
+      - key: TF_PUBLIC_URL
+        sync: false        # à définir = l'URL publique du service après le 1er déploiement
+      - key: NODE_VERSION
+        value: "20"

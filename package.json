@@ -1,0 +1,63 @@
+{
+  "name": "timeflow",
+  "productName": "TimeFlow",
+  "version": "1.0.0",
+  "description": "TimeFlow — agenda intelligent piloté par IA (application de bureau)",
+  "author": "TimeFlow",
+  "main": "electron-main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win portable --x64",
+    "pack": "electron-builder --dir"
+  },
+  "build": {
+    "appId": "com.timeflow.app",
+    "productName": "TimeFlow",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron-main.js",
+      "electron-preload.js",
+      "electron-preload-companion.js",
+      "server.js",
+      "app.html",
+      "node_modules/ws/**",
+      "vendor/**",
+      "build/icon.ico"
+    ],
+    "extraResources": [
+      {
+        "from": "seed",
+        "to": "seed"
+      },
+      {
+        "from": "models",
+        "to": "models"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "portable": {
+      "artifactName": "TimeFlow.exe"
+    }
+  },
+  "devDependencies": {
+    "electron": "^32.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "dependencies": {
+    "vosk-browser": "^0.0.8",
+    "ws": "^8.21.0"
+  }
+}

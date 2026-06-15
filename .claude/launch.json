@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "timeflow-preview",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server.js", "3010"],
+      "port": 3010
+    },
+    {
+      "name": "marketing-app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "marketing-app", "run", "dev", "--", "--port", "5180", "--strictPort"],
+      "port": 5180
+    },
+    {
+      "name": "marketing-preview",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "marketing-app", "run", "preview", "--", "--port", "5181", "--strictPort"],
+      "port": 5181
+    }
+  ]
+}

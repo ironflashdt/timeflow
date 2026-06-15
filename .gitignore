@@ -1,0 +1,35 @@
+# Dépendances / build
+node_modules/
+dist/
+data/
+
+# SECRETS & données personnelles — ne JAMAIS pousser en ligne
+config.json
+tokens.json
+habits.json
+tasks.json
+memory.json
+locks.json
+stats.json
+supabase-session.json
+companion-pos.json
+autostart.json
+*.bk.json
+
+# Dossiers temporaires de travail
+_*/
+_frames/
+_asar_tmp/
+_v/
+
+# Autre projet présent dans ce dossier — NE PAS inclure (a ses propres secrets)
+marketing-app/
+
+# Gros binaires inutiles pour l'hébergement (la voix en ligne passe par Whisper cloud)
+models/*.tar.gz
+*.exe
+*.asar
+
+# Divers
+.DS_Store
+*.log
