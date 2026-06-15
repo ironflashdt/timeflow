@@ -2234,7 +2234,7 @@ if(location.hash==='#open'){ expand(); }
 const GATE_PW = process.env.TF_ACCESS_PASSWORD || '';
 function gateToken(){ return crypto.createHmac('sha256', GATE_PW || 'x').update('timeflow-gate-v1').digest('hex'); }
 function gateOpen(req){ if(!GATE_PW) return true; const c=req.headers.cookie||''; const m=c.match(/tf_gate=([a-f0-9]+)/); return !!(m && m[1]===gateToken()); }
-const GATE_ALLOW = new Set(['/__login','/sw.js','/manifest.webmanifest','/icon.svg','/oauth/callback','/sb/callback','/sb/login']);
+const GATE_ALLOW = new Set(['/__login','/sw.js','/manifest.webmanifest','/icon.svg','/oauth/callback','/sb/callback','/sb/login','/.well-known/assetlinks.json']);
 const GATE_PAGE = ()=>`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TimeFlow</title>
 <style>*{box-sizing:border-box;margin:0;font-family:-apple-system,"Segoe UI",system-ui,sans-serif}body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(1200px 800px at 20% -10%,#3a1d5e,transparent),radial-gradient(900px 700px at 100% 20%,#0a2a5e,transparent),#0e0f13;color:#fff}
 .c{background:rgba(28,28,36,.7);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:40px 34px;width:340px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.5)}
@@ -2261,6 +2261,13 @@ const server = http.createServer(async(req,res)=>{
     if (!GATE_ALLOW.has(url.pathname) && !gateOpen(req)){ h(res, GATE_PAGE()); return; }
   }
 
+  // Digital Asset Links (TWA / Play Store) : relie le site à l'app Android (cache la barre d'URL).
+  // Renseigne TF_TWA_SHA256 (empreinte SHA-256 donnée par Bubblewrap) + TF_TWA_PACKAGE dans l'hébergeur.
+  if (url.pathname==='/.well-known/assetlinks.json'){
+    const sha=(process.env.TF_TWA_SHA256||'').trim(), pkg=(process.env.TF_TWA_PACKAGE||'app.timeflow.twa').trim();
+    const body = sha ? [{ relation:['delegate_permission/common.handle_all_urls'], target:{ namespace:'android_app', package_name:pkg, sha256_cert_fingerprints:[sha] } }] : [];
+    cors(res); res.writeHead(200,{'Content-Type':'application/json'}); res.end(JSON.stringify(body)); return;
+  }
   // App installable (PWA) — accessibles même non connecté
   if (url.pathname==='/manifest.webmanifest'){ cors(res); res.writeHead(200,{'Content-Type':'application/manifest+json; charset=utf-8'}); res.end(MANIFEST); return; }
   if (url.pathname==='/icon.svg'){ cors(res); res.writeHead(200,{'Content-Type':'image/svg+xml; charset=utf-8','Cache-Control':'public, max-age=604800'}); res.end(ICON_SVG); return; }
