@@ -2179,8 +2179,8 @@ function expand(){ document.body.classList.add('expanded'); if(_tf().setExpanded
 function collapse(){ var b=document.body; if(!b.classList.contains('expanded')){ if(_tf().setExpanded)_tf().setExpanded(false); return; }
   b.classList.add('closing');                       // joue panelOut, PUIS rétrécit la fenêtre → l'orbe se reforme
   setTimeout(function(){ b.classList.remove('expanded'); b.classList.remove('closing'); if(_tf().setExpanded)_tf().setExpanded(false); }, 175); }
-function openMain(){ if(_tf().openMain)_tf().openMain(); }
-function nav(v){ if(_tf().openMain) _tf().openMain(v); else openMain(); }   // ouvre l'app sur la vue choisie
+function openMain(){ document.body.classList.remove('expanded'); if(_tf().openMain)_tf().openMain(); }   // repasse en orbe AVANT que la fenêtre ne rétrécisse (sinon panneau coincé)
+function nav(v){ document.body.classList.remove('expanded'); if(_tf().openMain) _tf().openMain(v); else openMain(); }   // ouvre l'app sur la vue choisie
 if(_tf().onShape) _tf().onShape(function(d){ document.body.dataset.shape = d || 'right'; });
 // Carte de déplacement de la LENTILLE : normales radiales (bords = forte réfraction) → l'arrière-plan se courbe comme du verre
 (function(){ try{
