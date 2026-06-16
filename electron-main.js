@@ -130,13 +130,24 @@ ipcMain.on('companion:drag', (_e, dx, dy) => {       // glisser → déplace la 
   nx = Math.max(wa.x, Math.min(nx, wa.x + wa.width - b.width));
   ny = Math.max(wa.y, Math.min(ny, wa.y + wa.height - b.height));
   companion.setBounds({ x: nx, y: ny, width: b.width, height: b.height });
-  const e = nearestEdge({ x: nx, y: ny, width: b.width, height: b.height });   // cercle si loin, demi-cercle si proche d'un bord
-  if (e !== _liveDock) { _liveDock = e; try { companion.webContents.send('companion:shape', e); } catch (_) {} }
+  if (b.width <= 100) {                               // morph (cercle/demi-cercle) UNIQUEMENT pour l'orbe réduit
+    const e = nearestEdge({ x: nx, y: ny, width: b.width, height: b.height });
+    if (e !== _liveDock) { _liveDock = e; try { companion.webContents.send('companion:shape', e); } catch (_) {} }
+  }
 });
-ipcMain.on('companion:dragEnd', () => {               // au lâcher : aimante au bord le plus proche (ou reste libre = rond)
+ipcMain.on('companion:dragEnd', () => {
   if (!companion) return;
   const b = companion.getBounds();
-  const wa = waNear(b.x + b.width / 2, b.y + b.height / 2);   // bords de l'écran où l'icône a été lâchée
+  const wa = waNear(b.x + b.width / 2, b.y + b.height / 2);
+  if (b.width > 100) {                                // PANNEAU OUVERT déplacé → on GARDE sa taille (ne pas réduire à l'orbe !)
+    const x = Math.max(wa.x, Math.min(b.x, wa.x + wa.width - b.width));
+    const y = Math.max(wa.y, Math.min(b.y, wa.y + wa.height - b.height));
+    companion.setBounds({ x, y, width: b.width, height: b.height });
+    companionPos = { x: x + b.width - BOX, y };        // l'orbe réduit reviendra au coin haut-droit du panneau
+    saveCompanionPos();
+    return;
+  }
+  // Orbe réduit : aimantation au bord/coin le plus proche
   const e = nearestEdge(b);
   let x = b.x, y = b.y;
   if (e === 'right' || e === 'tr' || e === 'br') x = wa.x + wa.width - BOX; else if (e === 'left' || e === 'tl' || e === 'bl') x = wa.x;
