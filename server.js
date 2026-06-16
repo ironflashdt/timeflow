@@ -1893,7 +1893,7 @@ function edgeTTS(text, voice){
     const clean=String(text||'').replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])).slice(0,800);
     if(!clean.trim()) return reject(new Error('texte vide'));
     const reqId=crypto.randomBytes(16).toString('hex');
-    const url='wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken='+EDGE_TTS_TOKEN+'&Sec-MS-GEC='+_edgeGec()+'&Sec-MS-GEC-Version=1-130.0.2849.68&ConnectionId='+reqId;
+    const url='wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken='+EDGE_TTS_TOKEN+'&Sec-MS-GEC='+_edgeGec()+'&Sec-MS-GEC-Version=1-131.0.2903.112&ConnectionId='+reqId;
     const ws=new WS(url,{ headers:{ 'Origin':'chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold', 'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0' } });
     const chunks=[]; let done=false;
     const finish=(err)=>{ if(done) return; done=true; try{ ws.close(); }catch(e){} if(err) reject(err); else if(chunks.length) resolve(Buffer.concat(chunks)); else reject(new Error('aucun audio reçu')); };
@@ -1918,6 +1918,22 @@ function edgeTTS(text, voice){
     ws.on('error',e=>finish(new Error('Edge TTS : '+e.message)));
     ws.on('close',()=>finish(new Error('connexion fermée sans audio')));
     setTimeout(()=>finish(new Error('Edge TTS : délai dépassé')), 15000);
+  });
+}
+
+// ElevenLabs : voix IA la plus humaine (clé gratuite requise : config.elevenlabs_key ou env TF_ELEVENLABS_KEY)
+function elevenKey(){ return (process.env.TF_ELEVENLABS_KEY || config.elevenlabs_key || '').trim(); }
+function elevenTTS(text, voice){
+  return new Promise((resolve,reject)=>{
+    const key=elevenKey(); if(!key) return reject(new Error('no-eleven-key'));
+    const vid=(voice || config.elevenlabs_voice || 'EXAVITQu4vr4xnSDxMaL').trim();   // défaut : « Sarah » (naturelle)
+    const body=JSON.stringify({ text:String(text||'').slice(0,900), model_id:'eleven_multilingual_v2', voice_settings:{ stability:0.45, similarity_boost:0.8, style:0.15, use_speaker_boost:true } });
+    const rq=https.request({ hostname:'api.elevenlabs.io', path:'/v1/text-to-speech/'+encodeURIComponent(vid)+'?output_format=mp3_44100_128', method:'POST',
+      headers:{ 'xi-api-key':key, 'Content-Type':'application/json', 'Accept':'audio/mpeg', 'Content-Length':Buffer.byteLength(body) } }, rs=>{
+      const ch=[]; rs.on('data',d=>ch.push(d)); rs.on('end',()=>{ const buf=Buffer.concat(ch);
+        if(rs.statusCode===200 && buf.length>500) resolve(buf); else reject(new Error('ElevenLabs '+rs.statusCode+' : '+buf.slice(0,160).toString())); }); });
+    rq.on('error',reject); rq.setTimeout(20000,()=>rq.destroy(new Error('ElevenLabs : délai dépassé')));
+    rq.write(body); rq.end();
   });
 }
 
@@ -2284,11 +2300,12 @@ const server = http.createServer(async(req,res)=>{
   if (url.pathname==='/sw.js'){ cors(res); res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Service-Worker-Allowed':'/'}); res.end(SW_JS); return; }
   // Voix réaliste (Edge neuronal) — MP3 streamé au client ; il repliera sur la voix locale en cas d'échec
   if (url.pathname==='/api/tts'){
-    try{
-      const text=url.searchParams.get('text')||'';
-      const audio=await edgeTTS(text, url.searchParams.get('voice')||undefined);
-      cors(res); res.writeHead(200,{ 'Content-Type':'audio/mpeg', 'Content-Length':audio.length, 'Cache-Control':'no-store' }); res.end(audio);
-    }catch(e){ j(res,{error:e.message},500); }
+    const text=url.searchParams.get('text')||'', voice=url.searchParams.get('voice')||undefined;
+    let audio=null, err='';
+    if (elevenKey()){ try{ audio=await elevenTTS(text, voice); }catch(e){ err='eleven:'+e.message; } }   // 1) voix la plus humaine
+    if (!audio){ try{ audio=await edgeTTS(text, voice); }catch(e){ err+=' edge:'+e.message; } }            // 2) Edge neural (gratuit)
+    if (audio){ cors(res); res.writeHead(200,{ 'Content-Type':'audio/mpeg', 'Content-Length':audio.length, 'Cache-Control':'no-store' }); res.end(audio); }
+    else { j(res,{error:err||'tts indisponible'},500); }   // 3) le client repliera sur la voix du navigateur
     return;
   }
 

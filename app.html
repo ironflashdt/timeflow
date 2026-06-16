@@ -2645,7 +2645,7 @@ function stopVoiceMode(){
   _voiceMode=false; _listening=false; _speaking=false; _vState='idle'; _vHeard=''; _sttMode='';
   clearTimeout(_voiceWatchdog); clearInterval(_ttsResumer); clearTimeout(_voskAudioCheck);
   try{ _recognition&&_recognition.abort(); }catch(e){}
-  try{ window.speechSynthesis&&window.speechSynthesis.cancel(); }catch(e){}
+  stopSpeaking();
   voskStopMic();
   _recogActive=false; voiceOverlay(false); setMicUI();
 }
@@ -2653,7 +2653,7 @@ function stopVoiceMode(){
 function startListen(){
   if(!_voiceMode) return;
   clearTimeout(_voiceWatchdog);
-  try{ window.speechSynthesis&&window.speechSynthesis.cancel(); }catch(e){}
+  stopSpeaking();
   _speaking=false; _vState='listening'; _listening=true; voiceOverlay('listening',''); setMicUI();
   if(_sttMode==='cloud'){ try{ _voskCtx&&_voskCtx.resume(); }catch(e){} cloudStartRec(); return; }   // dictée Whisper : (ré)enregistre
   if(_useVosk){
@@ -2735,7 +2735,7 @@ function voOrbLoop(){
 // Interruption (barge-in) : on coupe l'IA qui parle et on réécoute immédiatement
 function voiceInterrupt(){
   if(!_voiceMode) return;
-  if(_vState==='speaking' || _speaking){ try{ window.speechSynthesis.cancel(); }catch(e){} clearInterval(_ttsResumer); _speaking=false; startListen(); }
+  if(_vState==='speaking' || _speaking){ stopSpeaking(); startListen(); }
   else if(_vState==='listening'){ voiceFinalizeNow(); }   // déjà en écoute → valide la phrase en cours
 }
 function voiceFinalizeNow(){
@@ -2753,23 +2753,44 @@ function voiceFatal(msg){
   clearTimeout(_voiceWatchdog);
   setTimeout(()=>voiceOverlay(false), 5500);
 }
-// Lecture vocale (TTS). En mode vocal, l'écoute redémarre à la FIN de la lecture (speak→onend→startListen).
+// Lecture vocale (TTS). VOIX NEURONALE (Edge, très humaine) via /api/tts en priorité ; repli sur la voix navigateur.
+let _ttsAudio=null;
+function stopSpeaking(){
+  try{ window.speechSynthesis&&window.speechSynthesis.cancel(); }catch(e){}
+  clearInterval(_ttsResumer);
+  try{ if(_ttsAudio){ _ttsAudio.onended=null; _ttsAudio.onerror=null; _ttsAudio.pause(); _ttsAudio.src=''; _ttsAudio=null; } }catch(e){}
+  _speaking=false;
+}
 function speak(text){
   const t=cleanForSpeech(text);
-  if(!('speechSynthesis' in window) || !t){ if(_voiceMode) startListen(); return; }
+  if(!t){ if(_voiceMode) startListen(); return; }
+  stopSpeaking();                                  // coupe toute lecture précédente
+  _speaking=true;
+  if(_voiceMode){ _vState='speaking'; voiceOverlay('speaking', t); setMicUI(); clearTimeout(_voiceWatchdog); }
+  let fin=false;
+  const done=()=>{ if(fin) return; fin=true; clearInterval(_ttsResumer); clearTimeout(_voiceWatchdog); _speaking=false; try{ if(_ttsAudio){_ttsAudio.onended=null;_ttsAudio.onerror=null;} }catch(e){} _ttsAudio=null; if(_voiceMode) startListen(); };
+  // 1) Voix neuronale Edge (MP3 servi par le serveur) — qualité proche d'ElevenLabs, gratuite
   try{
-    window.speechSynthesis.cancel();
-    if(!_frVoice) loadVoices();
-    const u=new SpeechSynthesisUtterance(t);
-    u.lang='fr-FR'; u.rate=1.04; u.pitch=1; if(_frVoice) u.voice=_frVoice;
-    _speaking=true;
-    if(_voiceMode){ _vState='speaking'; voiceOverlay('speaking', t); setMicUI(); clearTimeout(_voiceWatchdog); }
-    clearInterval(_ttsResumer); _ttsResumer=setInterval(()=>{ try{ if(window.speechSynthesis.speaking) window.speechSynthesis.resume(); }catch(e){} }, 7000);  // hack Chrome
-    const done=()=>{ clearInterval(_ttsResumer); _speaking=false; if(_voiceMode) startListen(); };
-    u.onend=done; u.onerror=done;
-    if(_voiceMode){ const est=Math.min(22000, 1400 + t.length*65); clearTimeout(_voiceWatchdog); _voiceWatchdog=setTimeout(()=>{ if(_voiceMode && _vState==='speaking'){ try{ window.speechSynthesis.cancel(); }catch(e){} done(); } }, est); }  // filet si onend ne se déclenche pas
+    const a=new Audio('/api/tts?text='+encodeURIComponent(t)); _ttsAudio=a;
+    try{ if(typeof _spkId!=='undefined' && _spkId && a.setSinkId) a.setSinkId(_spkId).catch(()=>{}); }catch(e){}   // sortie audio choisie
+    a.onended=done;
+    a.onerror=()=>{ if(fin) return; _ttsAudio=null; speakBrowser(t, done); };          // serveur KO → voix navigateur
+    a.onloadedmetadata=()=>{ if(_voiceMode && isFinite(a.duration) && a.duration>0){ clearTimeout(_voiceWatchdog); _voiceWatchdog=setTimeout(done, a.duration*1000+2000); } };
+    a.play().catch(()=>{ if(fin) return; _ttsAudio=null; speakBrowser(t, done); });
+    clearTimeout(_voiceWatchdog); _voiceWatchdog=setTimeout(()=>{ if(_voiceMode && _vState==='speaking') done(); }, Math.min(30000, 5000 + t.length*90));   // filet global
+  }catch(e){ _ttsAudio=null; speakBrowser(t, done); }
+}
+// Repli : synthèse du navigateur (robotique mais toujours dispo hors-ligne)
+function speakBrowser(t, done){
+  if(!('speechSynthesis' in window)){ done&&done(); return; }
+  try{
+    window.speechSynthesis.cancel(); if(!_frVoice) loadVoices();
+    const u=new SpeechSynthesisUtterance(t); u.lang='fr-FR'; u.rate=1.04; u.pitch=1; if(_frVoice) u.voice=_frVoice;
+    clearInterval(_ttsResumer); _ttsResumer=setInterval(()=>{ try{ if(window.speechSynthesis.speaking) window.speechSynthesis.resume(); }catch(e){} }, 7000);
+    u.onend=()=>done&&done(); u.onerror=()=>done&&done();
+    if(_voiceMode){ const est=Math.min(22000, 1400 + t.length*65); clearTimeout(_voiceWatchdog); _voiceWatchdog=setTimeout(()=>{ if(_voiceMode && _vState==='speaking'){ try{ window.speechSynthesis.cancel(); }catch(e){} done&&done(); } }, est); }
     window.speechSynthesis.speak(u);
-  }catch(e){ _speaking=false; if(_voiceMode) startListen(); }
+  }catch(e){ done&&done(); }
 }
 // Lit la réponse en mode vocal, ou si la lecture vocale est activée dans les réglages
 function speakIfEnabled(text){ if(_voiceMode || cfg('ai_tts',false)) speak(text); }
