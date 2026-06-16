@@ -121,7 +121,7 @@ function showCompanion(openPanel) {
 }
 
 ipcMain.on('companion:expand', (_e, expanded) => setCompanionExpanded(expanded));
-ipcMain.on('companion:openMain', () => { showMain(); setCompanionExpanded(false); });
+ipcMain.on('companion:openMain', (_e, view) => { showMain(); setCompanionExpanded(false); if (view && win) { const send = () => { try { win.webContents.send('tf:navigate', view); } catch (e) {} }; if (win.webContents.isLoading()) win.webContents.once('did-finish-load', send); else send(); } });
 ipcMain.on('companion:drag', (_e, dx, dy) => {       // glisser → déplace la fenêtre + morphe l'orbe (cercle/demi-cercle)
   if (!companion) return;
   const b = companion.getBounds();

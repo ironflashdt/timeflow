@@ -2554,6 +2554,8 @@ setTimeout(()=>{ try{ mountNowCard(); }catch(e){} }, 2200);
  '.now-card .nc-time{font-size:12px;color:var(--label-2);white-space:nowrap;flex-shrink:0}';
  document.head.appendChild(st); })();
 
+// Navigation demandée par le popup compagnon (fenêtre flottante) → ouvre la vue ici
+try{ if(window.TIMEFLOW_DESKTOP && window.TIMEFLOW_DESKTOP.onNavigate) window.TIMEFLOW_DESKTOP.onNavigate(function(v){ if(v && typeof go==='function') go(v); }); }catch(e){}
 // ───── Dock de navigation rapide (barre d'icônes flottante, bord droit) ─────
 function mountNavDock(){
   if(document.getElementById('nav-dock')) return;
@@ -2569,12 +2571,12 @@ function mountNavDock(){
     {v:'settings', t:'Réglages', svg:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8M4.6 9a1.6 1.6 0 00-.3-1.8M9.5 4a1.6 1.6 0 002.1-.8M12 20.8a1.6 1.6 0 00-2.1.8"/>'}
   ];
   const st=document.createElement('style'); st.id='nav-dock-css'; st.textContent=
-    '#nav-dock{position:fixed;right:6px;top:50%;transform:translateY(-50%);z-index:8000;display:flex;flex-direction:column;gap:3px;background:var(--surface);border:1px solid var(--separator-strong);border-radius:14px;padding:5px;box-shadow:0 8px 26px rgba(0,0,0,.20)}'+
+    '#nav-dock{position:fixed;right:6px;top:50%;transform:translateY(-50%);z-index:8000;display:none;flex-direction:column;gap:3px;background:var(--surface);border:1px solid var(--separator-strong);border-radius:14px;padding:5px;box-shadow:0 8px 26px rgba(0,0,0,.20)}'+
     '#nav-dock button{width:38px;height:38px;display:flex;align-items:center;justify-content:center;border:none;background:transparent;color:var(--label-2);border-radius:10px;cursor:pointer;transition:background .14s,color .14s}'+
     '#nav-dock button svg{width:19px;height:19px}'+
     '#nav-dock button:hover{background:var(--fill-2,rgba(127,127,127,.14));color:var(--label)}'+
     '#nav-dock button.on{background:var(--blue-soft,rgba(0,113,227,.14));color:var(--blue,#0071e3)}'+
-    '@media(max-width:760px){#nav-dock{top:auto;bottom:10px;left:50%;right:auto;transform:translateX(-50%);flex-direction:row;border-radius:18px;padding:5px 7px;gap:5px;box-shadow:0 -2px 24px rgba(0,0,0,.22)}#nav-dock button{width:40px;height:40px}}';
+    '@media(max-width:760px){#nav-dock{display:flex;top:auto;bottom:10px;left:50%;right:auto;transform:translateX(-50%);flex-direction:row;border-radius:18px;padding:5px 7px;gap:5px;box-shadow:0 -2px 24px rgba(0,0,0,.22)}#nav-dock button{width:40px;height:40px}}';
   document.head.appendChild(st);
   const d=document.createElement('div'); d.id='nav-dock';
   d.innerHTML=items.map(it=>'<button data-v="'+it.v+'" title="'+it.t+'" aria-label="'+it.t+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">'+it.svg+'</svg></button>').join('');

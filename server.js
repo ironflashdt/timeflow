@@ -2114,6 +2114,10 @@ header .logo{width:24px;height:24px;border-radius:7px;background:conic-gradient(
 header b{font-size:14px;font-weight:650;flex:1}
 header button{background:rgba(255,255,255,.08);border:none;color:#f2f2f7;width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:13px}
 header button:hover{background:rgba(255,255,255,.16)}
+.wnav{display:flex;gap:4px;justify-content:space-between;padding:2px 0 2px}
+.wnav button{flex:1;height:34px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#cfcfe0;border-radius:9px;cursor:pointer;transition:background .15s,color .15s}
+.wnav button:hover{background:rgba(124,92,255,.22);color:#fff}
+.wnav button svg{width:16px;height:16px}
 .now{border-radius:14px;padding:11px 13px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
 .now .lbl{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9b9ba6}
 .now .ttl{font-size:15px;font-weight:600;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -2154,6 +2158,15 @@ h4{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
     <button onclick="openMain()" title="Ouvrir l'app">⤢</button>
     <button onclick="collapse()" title="Réduire">›</button>
   </header>
+  <div class="wnav">
+    <button onclick="nav('planner')" title="Calendrier"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg></button>
+    <button onclick="nav('priorities')" title="Priorités"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h10M4 18h6"/></svg></button>
+    <button onclick="nav('agents')" title="Agents"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.1 5.6L20 9.2l-4 4.2 1 6.1-5-3-5 3 1-6.1-4-4.2 5.9-.6z"/></svg></button>
+    <button onclick="nav('tasks')" title="Tâches"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3 8.5-8.5M21 12v6a3 3 0 01-3 3H6a3 3 0 01-3-3V6a3 3 0 013-3h9"/></svg></button>
+    <button onclick="nav('habits')" title="Habitudes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 2.5l4 4-4 4M21 6.5H8a4 4 0 00-4 4v1M7 21.5l-4-4 4-4M3 17.5h13a4 4 0 004-4v-1"/></svg></button>
+    <button onclick="nav('stats')" title="Statistiques"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 21V9M12 21V4M19 21v-7"/></svg></button>
+    <button onclick="nav('settings')" title="Réglages"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8M4.6 9a1.6 1.6 0 00-.3-1.8"/></svg></button>
+  </div>
   <div class="now" id="now"><div class="lbl">Maintenant</div><div class="ttl">Chargement…</div></div>
   <h4>À venir</h4><div class="scroll" id="evs" style="max-height:150px"></div>
   <h4>À faire</h4><div class="scroll" id="tasks" style="max-height:140px"></div>
@@ -2167,6 +2180,7 @@ function collapse(){ var b=document.body; if(!b.classList.contains('expanded')){
   b.classList.add('closing');                       // joue panelOut, PUIS rétrécit la fenêtre → l'orbe se reforme
   setTimeout(function(){ b.classList.remove('expanded'); b.classList.remove('closing'); if(_tf().setExpanded)_tf().setExpanded(false); }, 175); }
 function openMain(){ if(_tf().openMain)_tf().openMain(); }
+function nav(v){ if(_tf().openMain) _tf().openMain(v); else openMain(); }   // ouvre l'app sur la vue choisie
 if(_tf().onShape) _tf().onShape(function(d){ document.body.dataset.shape = d || 'right'; });
 // Carte de déplacement de la LENTILLE : normales radiales (bords = forte réfraction) → l'arrière-plan se courbe comme du verre
 (function(){ try{
